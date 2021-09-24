@@ -1,0 +1,255 @@
+---
+title: "tarea2"
+author: "linares_german"
+date: "23/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidyselect)
+library(tidyr)
+library(dplyr)
+library(grid)
+library(gridExtra)
+```
+
+
+# Ejercicio 1. Simulando variables aleatorias discretas.
+### Apartado 1: La variable aleatoria discreta X1 tiene esta tabla de densidad de probabilidad (es la variable que se usa como ejemplo en la Sesión ):
+#### Calcula la media y la varianza teóricas de esta variable.
+
+```{r}
+# Aquí calculamos la media y la varianza siguiendo la forma teórica
+x1 <- c(0, 1, 2, 3)
+px1 <- c(64/125, 48/125, 12/125, 1/125)
+
+prod = x1 * px1
+print(prod)
+mean = sum(prod)
+print(mean)
+
+variance = sum((x1 - sum(x1 * px1))^2 * px1)
+print(variance)
+std_dev = sqrt(variance)
+print(std_dev)
+```
+
+### Apartado 2: Combina sample con replicate para simular cien mil muestras de tamaño 10 de esta variable X1. Estudia la distribución de las medias muestrales como hemos hecho en ejemplos previos, ilustrando con gráficas la distribución de esas medias muestrales. Cambia después el tamaño de la muestra a 30 y repite el análisis.
+
+```{r}
+k = 100000
+n = 10
+medias_muestrales = replicate(k, {
+  muestra = sample(x1, n, replace = TRUE, prob = px1)
+  mean(muestra)
+})
+head(medias_muestrales, 10)
+```
+```{r}
+# Representación gráfica de la distribuciónn de las medias muestrales con R básico
+hist(medias_muestrales, breaks = 20, main="", 
+     col="peachpuff", probability = TRUE)
+abline(v = mean(medias_muestrales), lty=2, lwd=5, col="blue")
+```
+
+```{r}
+# Aquí representados con ggplot
+
+medias_muestrales = replicate(k, {
+  muestra = sample(x1, n, replace = TRUE, prob = px1)
+  mean(muestra)
+})
+medias_muestrales = data.frame(medias_muestrales)
+ggplot(medias_muestrales) +
+  geom_histogram(aes(medias_muestrales), bins = 10) +
+  geom_vline(aes(xintercept = mean),color = "red") +
+  geom_vline(aes(xintercept = mean(medias_muestrales)),color = "yellow")
+```
+
+```{r}
+k = 100000
+n = 30
+medias_muestrales_2 = replicate(k, {
+  muestra = sample(x1, n, replace = TRUE, prob = px1)
+  mean(muestra)
+})
+medias_muestrales_2 = data.frame(medias_muestrales_2)
+ggplot(medias_muestrales_2) +
+  geom_histogram(aes(medias_muestrales_2)) +
+  geom_vline(aes(xintercept = mean),color = "red") +
+  geom_vline(aes(xintercept = mean(medias_muestrales_2)),color = "yellow")
+```
+
+
+### Apartado 3: La variable aleatoria discreta X2 tiene esta tabla de densidad de probabilidad: Suponemos que X1 y X2 son independientes. ¿Qué valores puede tomar la suma X1 + X2? ¿Cuál es su tabla de probabilidad?
+
+```{r}
+# Creamos los vectores de probabilidad
+x1 <- c(64/125, 48/125, 12/125, 1/125)
+x2 <- c(1/2, 1/4, 1/4)
+```
+
+```{r}
+# Buscamos las probabilidades de los posibles eventos
+p0 <- x2[1]*x1[1]
+p1 <- x2[2]*x1[1] + x2[1]*x1[2]
+p2 <- x2[3]*x1[1] + x2[2]*x1[2] + x2[1]*x1[3]
+p3 <- x2[1]*x1[4] + x2[2]*x1[3] + x2[3]*x1[2]
+p4 <- x2[2]*x1[4] + x2[3]*x1[3]
+p5 <- x2[3]*x1[4]
+```
+
+```{r}
+# Creamos la tabla
+resultados = matrix(c(p0, p1, p2, p3, p4, p5), nrow = 1)
+colnames(resultados) =  c("Z0", "Z1", "Z2", "Z3", "Z4", "Z5")
+resultados
+```
+
+### Apartado 4: Calcula la media teórica de la suma X1 + X2. Después usa sample y replicate para simular cien mil valores de esta variable suma. Calcula la media de esos valores. Advertencia: no es el mismo tipo de análisis que hemos hecho en el segundo apartado.
+
+```{r}
+prob_suma = resultados
+sumas = c(0,1,2,3,4,5)
+#Media teórica de la suma
+(media_suma_teorica = sum(sumas*prob_suma))
+valores = replicate(sample(x = sumas, prob = prob_suma, size = 1), n = 100000)
+(media_suma_sample = mean(valores))
+```
+
+
+# Ejercicio 2. Datos Limpios
+
+```{r}
+test_results = read_csv("data/testResults.csv")
+head(test_results)
+# gender_age debería separarse en dos columnas, género y edad para cumplir los requisitos de tidy data
+# adicionalmente, las columnas de week# se pueden pivotar para conseguir una única columna con el número de semana
+```
+```{r}
+# separamos edad y género
+test_results_tidy <- test_results %>%
+  separate(gender_age, c("Gender", "Age"), sep = "_", convert = TRUE)
+```
+
+```{r}
+#agrupamos las columnas de week
+test_results_tidy <- test_results_tidy %>%
+  pivot_longer(week1:week5, names_to="Week", names_prefix = "week")
+test_results_tidy
+```
+# Ejecicio 3. Lectura de R4DS
+
+### Contnuando con nuestra lectura conjunta de este libro, si revisas el índice verás que hemos cubierto (holgadamente en algún caso) el contenido de los Capítulos 6, 8, 9, 10 y 11. Todos esos Capítulos son relativamente ligeros. Por eso esta semana conviene detenerse un poco en la lectura de los Capítulos 7 y 12, que son los más densos en información. Y como motivación os proponemos un par de ejercicios, uno por cada uno de esos capítulos.
+
+#### • Haz el ejercicio 2 de la Sección 7.5.1.1 de R4DS. Las ideas de esa sección son importantes para nuestro trabajo de las próximas sesiones.
+
+##### What variable in the diamonds dataset is most important for predicting the price of a diamond? How is that variable correlated with cut? Why does the combination of those two relationships lead to lower quality diamonds being more expensive?
+
+```{r}
+data = diamonds
+```
+
+```{r}
+library(ggplot2)
+library(ggpubr)
+# Continuas
+plot1 <- ggplot(diamonds)+ 
+  geom_point(aes(x = carat, y = price))
+
+plot2 <- ggplot(diamonds)+ 
+  geom_point(aes(x = table, y = price))
+
+plot3 <- ggplot(diamonds)+ 
+  geom_point(aes(x = depth, y = price)) 
+
+# Discretas
+plot4 <- ggplot(diamonds)+ 
+  geom_boxplot(aes(x = clarity, y = price))
+
+plot5 <- ggplot(diamonds)+ 
+  geom_boxplot(aes(x = cut, y = price))
+
+plot6 <- ggplot(diamonds)+ 
+  geom_boxplot(aes(x = color, y = price))
+
+figure <- ggarrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2, nrow = 3)
+annotate_figure(figure,
+               top = text_grob("Diamonds' variables plots", color = "black", face = "bold", size = 14))
+
+```
+
+```{r}
+cor(diamonds$carat,diamonds$price)
+
+cor(diamonds$table,diamonds$price)
+
+cor(diamonds$depth,diamonds$price)
+
+# Correlación entre carats del diamante y su precio es alta y positiva lo que indica que a mayor número de carats más alto el precio del diamante
+
+```
+```{r}
+ggplot(diamonds)+ 
+  geom_boxplot(aes(x = cut, y = carat))
+
+# Cuanto peor es el corte, más peso tiene el diamante y como a mayor peso, mayor precio pues esto origina que diamantes de peor calidad terminen costando más que diamantes de mejor calidad (según el corte)
+```
+
+
+#### • Haz el ejercicio 4 de la Sección 12.6.1 de R4DS. ¡Aprovecha el código previo de esa sección para trabajar con datos limpios!
+
+##### For each country, year, and sex compute the total number of cases of TB. Make an informative visualisation of the data.
+
+```{r}
+who
+names(who)
+```
+```{r}
+who1 <- who %>% 
+  pivot_longer(
+    cols = new_sp_m014:newrel_f65, 
+    names_to = "key", 
+    values_to = "cases", 
+    values_drop_na = TRUE
+  )
+who1
+```
+```{r}
+who2 <- who1 %>% 
+  mutate(names_from = stringr::str_replace(key, "newrel", "new_rel"))
+who2
+```
+
+```{r}
+who3 <- who2 %>% 
+  separate(key, c("new", "type", "sexage"), sep = "_")
+who3
+```
+
+
+```{r}
+who4 <- who3 %>%
+  select(-new, -iso2, -iso3)
+```
+
+```{r}
+who5 <- who4 %>%
+  separate(sexage, c("sex", "age"), sep = 1)
+who5
+```
+```{r}
+who5 %>%
+  group_by(country, year, sex) %>%
+  filter(year > 1995) %>%
+  summarise(cases = sum(cases)) %>%
+  unite(country_sex, country, sex, remove = FALSE) %>%
+  ggplot(aes(x = year, y = cases, group = country_sex, colour = sex)) +
+  geom_line()
+```
+
